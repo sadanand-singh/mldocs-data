@@ -17,17 +17,5 @@ jobs:
       - name: execute py script # run the run.py to get the latest data
         run: |
           python run.py
-        env:
-          key: ${{ secrets.key }} # if run.py requires passwords..etc, set it as secrets
-      - name: switching from HTTPS to SSH
-        run: git remote set-url origin ${{ secrets.ssh }}
-      - name: check for changes
-        run: git status
-      - name: stage changed files
-        run: git add .
-      - name: commit changed files
-        run: git commit -m "Auto updating TODO.txt"
-      - name: fetch from master
-        run: git fetch origin master
-      - name: push code to master
-        run: git push origin HEAD:master
+      - name: Add & Commit
+        uses: EndBug/add-and-commit@v7.4.0
