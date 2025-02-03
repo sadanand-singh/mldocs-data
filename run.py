@@ -1,6 +1,7 @@
 import json
 import re
 from pathlib import Path
+from playwright.sync_api import sync_playwright
 
 import requests
 import yaml
@@ -18,8 +19,11 @@ def prepare_base_keywords():
 
 def parse_tf_docs(tf_doc_url=None, prefix='tf'):
     data = {}
-    base_url = tf_doc_url.split('?')[0]
-    content = requests.get(tf_doc_url).text
+    session = requests.Session()
+    resp = session.get(tf_doc_url)
+    final_url = resp.url
+    base_url = final_url.split('?')[0]
+    content = resp.text
     pattern = f"({base_url}/{prefix}/[a-zA-Z0-9_./#]+)"
     matches = re.findall(pattern, content, re.DOTALL)
     for link in matches:
@@ -40,10 +44,21 @@ def load_seed_file(file_name):
 def parse_generated_docs(link, pattern=None):
     data = {}
     base_url = link[: link.rfind('/')]
-    resp = requests.get(link)
+    print(base_url)
+
+    # Use playwright to render JavaScript content
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto(link, wait_until='networkidle')
+        content = page.content()
+        browser.close()
+
+    print(f'Fetching content from: {link}')
+
     if pattern is None:
         pattern = 'href="([a-zA-Z0-9_./#]+)"'
-    matches = re.findall(pattern, resp.text, re.DOTALL)
+    matches = re.findall(pattern, content, re.DOTALL)
     for href in matches:
         # generated urls tend to have package name and '#' mark included.
         # intentionally excluded __ functions
